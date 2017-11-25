@@ -10,7 +10,7 @@ defmodule DaocloudTelegram.Router do
     parsed_body = Poison.Parser.parse!(body)
     IO.inspect(body)
     IO.inspect(parsed_body)
-    {body, result } = parsed_body
+    {_, result } = parsed_body
                       |> print_repo
                       |> print_name
                       |> print_duration
@@ -29,12 +29,12 @@ defmodule DaocloudTelegram.Router do
   end
 
   def print_stages({body, result}) do
-    result = "#{result}阶段:\n"
     pending = Enum.all?(body["build"]["stages"], fn (item) -> item["status"] == "pending" end)
     enqueue = Enum.any?(body["build"]["stages"], fn (item) -> item["status"] == "Enqueue" end)
     if pending || enqueue do
       {body, ""}
-      else
+    else
+      result = "#{result}阶段:\n"
       stages = Enum.reduce(body["build"]["stages"], "", fn (item, result) -> result <> "\t" <> item["name"] <> " -> " <> item["status"] <> "\n" end)
       result = "#{result}#{stages}"
       {body, result}
