@@ -33,11 +33,12 @@ defmodule DaocloudTelegram.Router do
     pending = Enum.all?(body["build"]["stages"], fn (item) -> item["status"] == "pending" end)
     enqueue = Enum.any?(body["build"]["stages"], fn (item) -> item["status"] == "Enqueue" end)
     if pending || enqueue do
-      return {body, ""}
+      {body, ""}
+      else
+      stages = Enum.reduce(body["build"]["stages"], "", fn (item, result) -> result <> "\t" <> item["name"] <> " -> " <> item["status"] <> "\n" end)
+      result = "#{result}#{stages}"
+      {body, result}
     end
-    stages = Enum.reduce(body["build"]["stages"], "", fn (item, result) -> result <> "\t" <> item["name"] <> " -> " <> item["status"] <> "\n" end)
-    result = "#{result}#{stages}"
-    {body, result}
   end
 
   def print_duration({body, result}) do
