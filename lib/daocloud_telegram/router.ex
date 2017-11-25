@@ -13,9 +13,9 @@ defmodule DaocloudTelegram.Router do
     {body, result } = parsed_body
                       |> print_repo
                       |> print_name
-                      |> print_stages
                       |> print_duration
                       |> print_tag
+                      |> print_stages
                       |> notify_telegram
     send_resp(conn, 200, result)
   end
@@ -30,6 +30,11 @@ defmodule DaocloudTelegram.Router do
 
   def print_stages({body, result}) do
     result = "#{result}阶段:\n"
+    pending = Enum.all?(body["build"]["stages"], fn (item) -> item["status"] == "pending" end)
+    enqueue = Enum.any?(body["build"]["stages"], fn (item) -> item["status"] == "Enqueue" end)
+    if pending || enqueue do
+      return {body, ""}
+    end
     stages = Enum.reduce(body["build"]["stages"], "", fn (item, result) -> result <> "\t" <> item["name"] <> " -> " <> item["status"] <> "\n" end)
     result = "#{result}#{stages}"
     {body, result}
@@ -44,10 +49,12 @@ defmodule DaocloudTelegram.Router do
   end
 
   def notify_telegram({body, result}) do
-    HTTPoison.start
-    HTTPoison.post("http://telegram-api.watsy0007.com/bot#{System.get_env("BOT_KEY")}/sendMessage",
-                   {:form, [chat_id: System.get_env("CHAT_ID"), text: result]},
-                   %{"Content-type" => "application/x-www-form-urlencoded"})
+    if result != "" do
+      HTTPoison.start
+      HTTPoison.post("http://telegram-api.watsy0007.com/bot#{System.get_env("BOT_KEY")}/sendMessage",
+        {:form, [chat_id: System.get_env("CHAT_ID"), text: result]},
+        %{"Content-type" => "application/x-www-form-urlencoded"})
+    end
     {body, result}
   end
 
